@@ -57,6 +57,7 @@ public:
     size_t maxPoints() const {
         return m_npmax;
     }
+    
 
     //! Set the minimum allowable spacing between adjacent grid points [m].
     void setGridMin(double gridmin) {
@@ -67,6 +68,11 @@ public:
     //! grid points [m].
     double gridMin() const {
         return m_gridmin;
+    }
+
+    // modified: new member function added
+    void setExtraVar(doublereal * x) {
+        m_doevar = true; m_evar = x;
     }
 
     int analyze(size_t n, const doublereal* z, const doublereal* x);
@@ -107,6 +113,8 @@ protected:
     size_t m_nv, m_npmax;
     doublereal m_thresh;
     doublereal m_gridmin; //!< minimum grid spacing [m]
+    bool m_doevar;    // modified: memebr variable added
+    doublereal* m_evar;    // modified: memebr variable added
 };
 
 }

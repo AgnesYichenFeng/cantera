@@ -14,7 +14,7 @@ namespace Cantera
 Refiner::Refiner(Domain1D& domain) :
     m_ratio(10.0), m_slope(0.8), m_curve(0.8), m_prune(-0.001),
     m_min_range(0.01), m_domain(&domain), m_npmax(1000),
-    m_gridmin(1e-10)
+    m_gridmin(1e-10), m_doevar(false)
 {
     m_nv = m_domain->nComponents();
     m_active.resize(m_nv, true);
@@ -148,6 +148,77 @@ int Refiner::analyze(size_t n, const doublereal* z,
             }
         }
     }
+
+    // modified: modification starts
+    if ( m_doevar )
+    {
+       //Section added so that Ts effects refinement process.
+       //
+       //writelog("regine extra var\n");
+       string name="Ts";
+       //std::cout << Tw.size() << endl;
+       for (size_t j = 0; j < n; j++) v[j] = m_evar[j];
+       for (size_t j = 0; j < n-1; j++)
+          s[j] = (m_evar[j+1] - m_evar[j])/(z[j+1] - z[j]);
+
+       doublereal vmin = *min_element(v.begin(), v.end());
+       doublereal vmax = *max_element(v.begin(), v.end());
+       doublereal smin = *min_element(s.begin(), s.end());
+       doublereal smax = *max_element(s.begin(), s.end());
+
+       // max absolute values of v and s
+       doublereal aa = std::max(fabs(vmax), fabs(vmin));
+       doublereal ss = std::max(fabs(smax), fabs(smin));
+
+       // refine based on component i only if the range of v is
+       // greater than a fraction 'min_range' of max |v|. This
+       // eliminates components that consist of small fluctuations
+       // on a constant background.
+       if ((vmax - vmin) > m_min_range*aa) {
+           // maximum allowable difference in value between adjacent
+           // points.
+           doublereal dmax = m_slope*(vmax - vmin) + m_thresh;
+           for (size_t j = 0; j < n-1; j++) {
+               doublereal r = fabs(v[j+1] - v[j])/dmax;
+               if (r > 1.0 && dz[j] >= 2 * m_gridmin) {
+                   m_loc[j] = 1;
+                   m_c[name] = 1;
+               }
+               if (r >= m_prune) {
+                   m_keep[j] = 1;
+                   m_keep[j+1] = 1;
+               } else if (m_keep[j] == 0) {
+                   m_keep[j] = -1;
+               }
+           }
+       }
+
+       // refine based on the slope of component i only if the
+       // range of s is greater than a fraction 'min_range' of max
+       // |s|. This eliminates components that consist of small
+       // fluctuations on a constant slope background.
+       if ((smax - smin) > m_min_range*ss) {
+           // maximum allowable difference in slope between
+           // adjacent points.
+           doublereal dmax = m_curve*(smax - smin);
+           for (size_t j = 0; j < n-2; j++) {
+               doublereal r = fabs(s[j+1] - s[j]) / (dmax + m_thresh/dz[j]);
+               if (r > 1.0 && dz[j] >= 2 * m_gridmin &&
+                       dz[j+1] >= 2 * m_gridmin) {
+                   m_c[name] = 1;
+                   m_loc[j] = 1;
+                   m_loc[j+1] = 1;
+               }
+               if (r >= m_prune) {
+                   m_keep[j+1] = 1;
+               } else if (m_keep[j+1] == 0) {
+                   m_keep[j+1] = -1;
+               }
+           }
+       }
+    }
+    // modified: modification ends
+
 
     StFlow* fflame = dynamic_cast<StFlow*>(m_domain);
 

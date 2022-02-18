@@ -18,7 +18,8 @@ namespace Cantera
 {
 
 OneDim::OneDim()
-    : m_tmin(1.0e-16), m_tmax(1e8), m_tfactor(0.5),
+    : dosolid(0),    // modified: whether solid phase must be solved
+      m_tmin(1.0e-16), m_tmax(1e8), m_tfactor(0.5),
       m_rdt(0.0), m_jac_ok(false),
       m_bw(0), m_size(0),
       m_init(false), m_pts(0),
@@ -31,6 +32,7 @@ OneDim::OneDim()
 }
 
 OneDim::OneDim(vector<Domain1D*> domains) :
+    dosolid(0),    // modified:
     m_tmin(1.0e-16), m_tmax(1e8), m_tfactor(0.5),
     m_rdt(0.0), m_jac_ok(false),
     m_bw(0), m_size(0),
@@ -225,6 +227,7 @@ void OneDim::resize()
 int OneDim::solve(doublereal* x, doublereal* xnew, int loglevel)
 {
     if (!m_jac_ok) {
+        dosolid = 1;    // modified: solid phase must be solved before next gas phase iteration
         eval(npos, x, xnew, 0.0, 0);
         m_jac->eval(x, xnew, 0.0);
         m_jac->updateTransient(m_rdt, m_mask.data());
@@ -359,6 +362,7 @@ doublereal OneDim::timeStep(int nsteps, doublereal dt, doublereal* x,
     int successiveFailures = 0;
 
     while (n < nsteps) {
+        dosolid = 1; //modified: solid phase solved before next gas phase iteration
         if (loglevel > 0) {
             doublereal ss = ssnorm(x, r);
             writelog(" {:>4d}  {:10.4g}  {:10.4g}", n, dt, log10(ss));

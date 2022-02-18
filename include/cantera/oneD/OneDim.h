@@ -50,6 +50,8 @@ public:
      * @param loglevel   Controls amount of diagnostic output.
      */
     int solve(doublereal* x0, doublereal* x1, int loglevel);
+    
+    int dosolid;    // modified to match OneDim.cpp
 
     /// Number of domains.
     size_t nDomains() const {
