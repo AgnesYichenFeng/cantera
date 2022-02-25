@@ -292,7 +292,9 @@ void Sim1D::setTimeStep(double stepsize, size_t n, const int* tsteps)
 
 int Sim1D::newtonSolve(int loglevel)
 {
+    debuglog("Just got here", loglevel);
     int m = OneDim::solve(m_x.data(), m_xnew.data(), loglevel);
+    debuglog("Reached here", loglevel);
     if (m >= 0) {
         m_x = m_xnew;
         return 0;
@@ -326,6 +328,7 @@ void Sim1D::solve(int loglevel, bool refine_grid)
             newton().setOptions(m_ss_jac_age);
             debuglog("Attempt Newton solution of steady-state problem...", loglevel);
             int status = newtonSolve(loglevel-1);
+            debuglog("Continue...", loglevel);
 
             if (status == 0) {
                 if (loglevel > 0) {

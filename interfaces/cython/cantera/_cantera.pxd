@@ -1092,6 +1092,39 @@ cdef extern from "cantera/oneD/StFlow.h":
         void setAxisymmetricFlow()
         string flowType()
 
+    cdef cppclass CxxAxiStagnFlow "Cantera::AxiStagnFlow":
+        CxxAxiStagnFlow(CxxIdealGasPhase*, int, int)
+
+    cdef cppclass CxxPorousFlow "Cantera::PorousFlow":
+        CxxPorousFlow(CxxIdealGasPhase*, int, int)
+        double pore1
+        double pore2
+        double m_porea
+        double m_poreb
+        double m_porec
+        double m_pored
+        double diam1
+        double diam2
+        double scond1
+        double scond2
+        double m_diama
+        double m_diamb
+        double m_diamc
+        double m_diamd
+        double Omega1
+        double Omega2
+        double srho
+        double sCp
+        double m_zmid
+        double m_dzmid
+        double getTw(int &)
+        double getDq(int &)
+        double getPore(int &)
+        double getDiam(int &)
+        double getScond(int &)
+        double getHconv(int &)
+
+
 
 cdef extern from "cantera/oneD/IonFlow.h":
     cdef cppclass CxxIonFlow "Cantera::IonFlow":
@@ -1100,6 +1133,7 @@ cdef extern from "cantera/oneD/IonFlow.h":
         void solveElectricField()
         void fixElectricField()
         cbool doElectricField(size_t)
+
 
 
 cdef extern from "cantera/oneD/Sim1D.h":
@@ -1560,6 +1594,9 @@ cdef class IonFlow(_FlowBase):
     pass
 
 cdef class AxisymmetricStagnationFlow(IdealGasFlow):
+    pass
+
+cdef class PorousFlow(IdealGasFlow):
     pass
 
 cdef class Sim1D:

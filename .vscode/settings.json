@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "alignedvector3": "cpp",
+    "filesystem": "cpp"
+  }
+}

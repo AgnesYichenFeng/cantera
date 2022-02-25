@@ -227,13 +227,15 @@ void OneDim::resize()
 int OneDim::solve(doublereal* x, doublereal* xnew, int loglevel)
 {
     if (!m_jac_ok) {
+        debuglog("One Dim before dosolid Hooray", loglevel);
         dosolid = 1;    // modified: solid phase must be solved before next gas phase iteration
         eval(npos, x, xnew, 0.0, 0);
+        debuglog("One Dim Passed eval Yay", loglevel);
         m_jac->eval(x, xnew, 0.0);
         m_jac->updateTransient(m_rdt, m_mask.data());
         m_jac_ok = true;
     }
-
+    debuglog("One Dim solve Hooray", loglevel);
     return m_newt->solve(x, xnew, *this, *m_jac, loglevel);
 }
 
