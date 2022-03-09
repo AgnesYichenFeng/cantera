@@ -318,6 +318,7 @@ int MultiNewton::solve(doublereal* x0, doublereal* x1,
         }
 
         // compute the undamped Newton step
+        debuglog("MultiNewton::solve -> step", loglevel);
         step(&m_x[0], &m_stp[0], r, jac, loglevel-1);
 
         // increment the Jacobian age
