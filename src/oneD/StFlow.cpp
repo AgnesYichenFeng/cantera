@@ -1130,22 +1130,50 @@ void StFlow::evalContinuity(size_t j, double* x, double* rsd, int* diag, double 
 void AxiStagnFlow::evalRightBoundary(doublereal* x, doublereal* rsd,
                                      integer* diag, doublereal rdt)
 {
+    // modified 03/15
+
+    // old code
+    // size_t j = m_points - 1;
+    // // the boundary object connected to the right of this one may modify or
+    // // replace these equations. The default boundary conditions are zero u, V,
+    // // and T, and zero diffusive flux for all species.
+    // rsd[index(0,j)] = rho_u(x,j);
+    // rsd[index(1,j)] = V(x,j);
+    // rsd[index(2,j)] = T(x,j);
+    // rsd[index(c_offset_L, j)] = lambda(x,j) - lambda(x,j-1);
+    // diag[index(c_offset_L, j)] = 0;
+    // doublereal sum = 0.0;
+    // for (size_t k = 0; k < m_nsp; k++) {
+    //     sum += Y(x,k,j);
+    //     rsd[index(k+4,j)] = m_flux(k,j-1) + rho_u(x,j)*Y(x,k,j);
+    // }
+    // rsd[index(4,j)] = 1.0 - sum;
+    // diag[index(4,j)] = 0;
+    
+    // new code added
     size_t j = m_points - 1;
+
     // the boundary object connected to the right of this one may modify or
     // replace these equations. The default boundary conditions are zero u, V,
     // and T, and zero diffusive flux for all species.
-    rsd[index(0,j)] = rho_u(x,j);
-    rsd[index(1,j)] = V(x,j);
-    rsd[index(2,j)] = T(x,j);
+
+    rsd[index(c_offset_V,j)] = V(x,j);
+    doublereal sum = 0.0;
     rsd[index(c_offset_L, j)] = lambda(x,j) - lambda(x,j-1);
     diag[index(c_offset_L, j)] = 0;
-    doublereal sum = 0.0;
     for (size_t k = 0; k < m_nsp; k++) {
         sum += Y(x,k,j);
-        rsd[index(k+4,j)] = m_flux(k,j-1) + rho_u(x,j)*Y(x,k,j);
+        rsd[index(k+c_offset_Y,j)] = m_flux(k,j-1) + rho_u(x,j)*Y(x,k,j);
     }
-    rsd[index(4,j)] = 1.0 - sum;
-    diag[index(4,j)] = 0;
+    rsd[index(c_offset_Y + rightExcessSpecies(), j)] = 1.0 - sum;
+    diag[index(c_offset_Y + rightExcessSpecies(), j)] = 0;
+    rsd[index(c_offset_U,j)] = rho_u(x,j);
+    if (m_do_energy[j]) {
+        rsd[index(c_offset_T,j)] = T(x,j);
+    } else {
+        rsd[index(c_offset_T, j)] = T(x,j) - T_fixed(j);
+    }
+    // modified 03/15 end
 }
 
 void AxiStagnFlow::evalContinuity(size_t j, doublereal* x, doublereal* rsd,
@@ -1168,7 +1196,6 @@ void AxiStagnFlow::evalContinuity(size_t j, doublereal* x, doublereal* rsd,
     diag[index(c_offset_U, j)] = 0;
 }
 
-// Not sure about use yet
 // FreeFlame::FreeFlame(IdealGasPhase* ph, size_t nsp, size_t points) :
 //     StFlow(ph, nsp, points),
 //     m_zfixed(Undef),
@@ -1177,6 +1204,8 @@ void AxiStagnFlow::evalContinuity(size_t j, doublereal* x, doublereal* rsd,
 //     m_dovisc = false;
 //     setID("flasme");
 // }
+
+
 
 void PorousFlow::setupGrid(size_t n, const doublereal* z)
 {
@@ -1226,10 +1255,12 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
         return;
     }
 
+    // modified 03/15
     // if evaluating a Jacobian, compute the steady-state residual
-    if (jg != npos) {
-        rdt = 0.0;
-    }
+    // if (jg != npos) {
+    //     rdt = 0.0;
+    // }
+    // modified 03/15 end
 
     // start of local part of global arrays
     doublereal* x = xg + loc();
@@ -1261,9 +1292,26 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
 
     // update transport properties only if a Jacobian is not
     // being evaluated
-    if (jg == npos) {
+
+    // modified 03/15
+    // if (jg == npos) {
+    //     updateTransport(x, j0, j1);
+    // }
+    if (jg == npos || m_force_full_update) {
+        // update transport properties only if a Jacobian is not being
+        // evaluated, or if specifically requested
         updateTransport(x, j0, j1);
     }
+    if (jg == npos) {
+        double* Yleft = x + index(c_offset_Y, jmin);
+        m_kExcessLeft = distance(Yleft, max_element(Yleft, Yleft + m_nsp));
+        double* Yright = x + index(c_offset_Y, jmax);
+        m_kExcessRight = distance(Yright, max_element(Yright, Yright + m_nsp));
+    }
+
+    // modified 03/15 end
+
+
 
     // update the species diffusive mass fluxes whether or not a
     // Jacobian is being evaluated
@@ -1398,9 +1446,19 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
             // for V, T, and mdot. As a result, these residual equations
             // will force the solution variables to the values for
             // the boundary object
+            
+            // modified 03/15
+            // rsd[index(c_offset_V,0)] = V(x,0);
+            // rsd[index(c_offset_T,0)] = T(x,0);
+            // rsd[index(c_offset_L,0)] = -rho_u(x,0);
             rsd[index(c_offset_V,0)] = V(x,0);
-            rsd[index(c_offset_T,0)] = T(x,0);
+            if (doEnergy(0)) {
+                rsd[index(c_offset_T,0)] = T(x,0);
+            } else {
+                rsd[index(c_offset_T,0)] = T(x,0) - T_fixed(0);
+            }
             rsd[index(c_offset_L,0)] = -rho_u(x,0);
+            // modified 03/15 end
 
             // The default boundary condition for species is zero
             // flux. However, the boundary object may modify
@@ -1408,10 +1466,14 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
             sum = 0.0;
             for (k = 0; k < m_nsp; k++) {
                 sum += Y(x,k,0);	//MODIFIED
-		    rsd[index(c_offset_Y + k, 0)] =
+		        rsd[index(c_offset_Y + k, 0)] =
                     -(m_flux(k,0) + rho_u(x,0)* Y(x,k,0));
             }
-            rsd[index(c_offset_Y, 0)] = 1.0 - sum;
+
+            // modified 03/15
+            // rsd[index(c_offset_Y, 0)] = 1.0 - sum;
+            rsd[index(c_offset_Y + leftExcessSpecies(), 0)] = 1.0 - sum;
+            // modified 03/15 end
 
             // c_offset_E modification
             // set residual of poisson's equ to zero
@@ -1905,23 +1967,12 @@ void PorousFlow::solid(doublereal* x, vector<double> &hconv, vector<double>& sco
       }
       writelog("Rad not Converged");
    }
-
-
-
-
-   
    if ( m_refiner ) {
       refiner().setExtraVar(Tw.data());
    }
 
 
 }
-
-
-
-
-
-
 
 
 

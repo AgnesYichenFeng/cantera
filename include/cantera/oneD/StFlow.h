@@ -184,6 +184,8 @@ public:
             return "Free Flame";
         } else if (m_type == cAxisymmetricStagnationFlow) {
             return "Axisymmetric Stagnation";
+        // } else if (m_type == cPorousType) {
+        //     return "Porous Flow";
         } else {
             throw CanteraError("StFlow::flowType", "Unknown value for 'm_type'");
         }
@@ -503,6 +505,7 @@ class AxiStagnFlow : public StFlow
 public:
     AxiStagnFlow(IdealGasPhase* ph = 0, size_t nsp = 1, size_t points = 1) :
         StFlow(ph, nsp, points) {
+        // m_type = cPorousType;
         m_dovisc = true;
     }
 
