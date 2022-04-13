@@ -22,7 +22,7 @@ const int cSymmType = 105;
 const int cOutletType = 106;
 const int cEmptyType = 107;
 const int cOutletResType = 108;
-const int cPorousType = 109;
+const int cPorousType = 53;    // modified 03/15
 
 class MultiJac;
 class OneDim;

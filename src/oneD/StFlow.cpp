@@ -1475,27 +1475,27 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
             rsd[index(c_offset_Y + leftExcessSpecies(), 0)] = 1.0 - sum;
             // modified 03/15 end
 
-            // c_offset_E modification
+            // modified c_offset_E 
             // set residual of poisson's equ to zero
             rsd[index(c_offset_E, j)] = x[index(c_offset_E, j)];
-            // end modification
+            // modified end 
             
         }
         else if (j == m_points - 1) {
             evalRightBoundary(x, rsd, diag, rdt);
 
-            // c_offset_E modification
+            // modified c_offset_E 
             // set residual of poisson's equ to zero
             rsd[index(c_offset_E, j)] = x[index(c_offset_E, j)];
-            // end modification
+            // modified 03/15 end
 
         } else { // interior points
             //evalContinuity(j, x, rsd, diag, rdt,pore);
 
-            // c_offset_E modification
+            // modified c_offset_E 
             // set residual of poisson's equ to zero
             rsd[index(c_offset_E, j)] = x[index(c_offset_E, j)];
-            // end modification
+            // modified 03/15 end
             
             rsd[index(c_offset_U,j)] =
                -(rho_u(x,j+1)*pore[j+1] - rho_u(x,j)*pore[j])/m_dz[j] //added porosity
